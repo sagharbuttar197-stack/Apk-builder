@@ -1,0 +1,46 @@
+name: Build Any APK
+on: 
+  repository_dispatch:
+    types: [build_app]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Android Project
+        run: |
+          mkdir -p app/src/main/java/com/generated/app
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main
+          
+      - name: Create Files from AI
+        run: |
+          echo '${{ github.event.client_payload.manifest }}' > app/src/main/AndroidManifest.xml
+          echo '${{ github.event.client_payload.main_activity }}' > app/src/main/java/com/generated/app/MainActivity.java
+          echo '${{ github.event.client_payload.layout }}' > app/src/main/res/layout/activity_main.xml
+          echo '${{ github.event.client_payload.gradle }}' > app/build.gradle
+          echo '${{ github.event.client_payload.strings }}' > app/src/main/res/values/strings.xml
+          echo '${{ github.event.client_payload.project_gradle }}' > build.gradle
+          echo '${{ github.event.client_payload.settings_gradle }}' > settings.gradle
+          echo '${{ github.event.client_payload.wrapper_prop }}' > gradle/wrapper/gradle-wrapper.properties
+          echo '${{ github.event.client_payload.gradlew }}' > gradlew
+          
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+          
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Generated-App
+          path: app/build/outputs/apk/debug/app-debug.apk
